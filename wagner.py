@@ -9,6 +9,9 @@ def chunks(l, n=2):
 
 hashmem = {}
 
+def hexout(x):
+    return binascii.hexlify(x).decode()
+
 def nhash(data):
     if data in hashmem:
         return hashmem[data]
@@ -62,7 +65,7 @@ class Node(object):
     def getv(self):
         """ For display purposes.
         """
-        return [binascii.hexlify(x[0]).decode() for x in self.v]
+        return [hexout(x[0]) for x in self.v]
 
 def main(n, k, seed):
     l = n // int(math.log(k, 2)+1)
@@ -98,7 +101,8 @@ def main(n, k, seed):
                 founda = a
                 foundb = b
                 break
-    print("Got a match on: {} with {}, now finding preimages.".format(founda[0], foundb[0]))
+    print("Got a match on: {} with {}, now finding preimages.".format(
+        hexout(founda[0]), hexout(foundb[0])))
     # now we traverse *down* the tree from the root to the basenodes, and find the basenode preimages
     matchvals = [founda, foundb]
     for i in range(1, tree_depth):
@@ -116,13 +120,12 @@ def main(n, k, seed):
             if nhash(p[0]) == matchvals[i][0]:
                 preimages.append(p[0])
                 hashes.append(matchvals[i][0])
-                print("H({}) = {}".format(binascii.hexlify(p[0]).decode(),
-            binascii.hexlify(hashes[-1]).decode()))
+                print("H({}) = {}".format(hexout(p[0]), hexout(hashes[-1])))
                 break
     # now verify that these hashes xor to the correct value:
     print("Now we calculate the value of *all* those hashes xor-red together:")
     testval = xormulti(*hashes)
-    print("resulting xor is: {}".format(testval))
+    print("resulting xor is: {}".format(hexout(testval)))
 
 if __name__ == "__main__":
     global ntrunc
@@ -130,9 +133,11 @@ if __name__ == "__main__":
     n = int(sys.argv[1])
     # how many bytes to truncate our base hash function to, to get
     # our test hash function:
+    assert not n % 8, "Number of bits must be a multiple of 8."
     ntrunc = n // 8
     # how many values input to the k-sum problem:
     k = int(sys.argv[2])
+    assert not n % (math.log(k, 2) + 1), "k must be such that n/(lg(k)+1) is an integer."
     # some random data to start off our lists of hashes;
     # by using H(H(H(...H(seed)))..) iteratively, we can
     # keep using the same data set if we want:
